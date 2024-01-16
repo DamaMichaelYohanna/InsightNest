@@ -2,7 +2,7 @@ import os
 import pathlib
 from enum import Enum as PyEnum
 
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
 from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import SQLModel, create_engine, Session, Field, Relationship, Enum, select
 from typing import List
@@ -80,18 +80,14 @@ class User(SQLModel, table=True):
             "primaryjoin": "Associate.by_id==User.id"}
     )
 
-    @property
-    def get_following(self):
+    def get_following(self, session: Session):
         """return the people the current user is following"""
-        session = get_session()
         filter_statement = select(Associate).where(Associate.by == self)
         following = session.exec(filter_statement)
         return following.all()
 
-    @property
-    def get_followers(self):
+    def get_followers(self, session: Session):
         """return the user that are currently following the user"""
-        session = get_session()
         filter_statement = select(Associate).where(Associate.to == self)
         followers = session.exec(filter_statement)
         return followers.all()
@@ -129,7 +125,7 @@ class User(SQLModel, table=True):
             Associate.by == self,
             Associate.to == user_2_block,
         )
-        return_value = session.exec(filter_statement).one()
+        return_value = session.exec(filter_statement).first()
         if return_value:
             return_value.status = 0
         else:
@@ -145,9 +141,14 @@ class User(SQLModel, table=True):
         filter_statement = select(Associate).where(
             Associate.by == self,
             Associate.to == user_2_unblock,
-            Associate.status == 1
 
         )
-        return_value = session.exec(filter_statement).one()
-        session.delete(return_value)
-        session.commit()
+        return_value = session.exec(filter_statement).first()
+        if return_value:
+            session.delete(return_value)
+            session.commit()
+        else:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No association. Can not unblock",
+            )
