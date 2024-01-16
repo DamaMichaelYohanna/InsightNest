@@ -1,8 +1,21 @@
 import os
 import pathlib
 from enum import Enum as PyEnum
+
+from fastapi import HTTPException, status
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import SQLModel, create_engine, Session, Field, Relationship, Enum, select
 from typing import List
+
+sql_db_path = os.path.join(pathlib.Path(__file__).parent.parent, "database.db")
+sql_db_link = f"sqlite:///{sql_db_path}"
+engine = create_engine(sql_db_link, echo=True)
+SQLModel.metadata.create_all(bind=engine)
+
+
+def get_session():
+    with Session(engine) as session:
+        yield session
 
 
 # Define the Enum for Status
@@ -83,31 +96,38 @@ class User(SQLModel, table=True):
         followers = session.exec(filter_statement)
         return followers.all()
 
-    def follow_user(self, user_2_follower):
+    def follow_user(self, session: Session, user_2_follower):
         associate: Associate = Associate(by=self, to=user_2_follower, status=1)
-        session = get_session()
         session.add(associate)
-        session.commit()
+        try:
+            session.commit()
+        except IntegrityError:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Can't not follow same user twice",
+            )
 
-    def unfollow_user(self, user_2_unfollower):
+    def unfollow_user(self, session: Session, user_2_unfollower):
         filter_statement = select(Associate).where(
             Associate.by == self,
             Associate.to == user_2_unfollower,
             Associate.status == 1
 
         )
-        session = get_session()
-        return_value = session.exec(filter_statement).one()
-        session.delete(return_value)
-        session.commit()
+        try:
+            return_value = session.exec(filter_statement).one()
+            session.delete(return_value)
+            session.commit()
+        except NoResultFound:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="No association",
+            )
 
-    def block_user(self, user_2_block):
-        session = get_session()
-        print(type(session))
+    def block_user(self, session: Session, user_2_block):
         filter_statement: select = select(Associate).where(
             Associate.by == self,
             Associate.to == user_2_block,
-            Associate.status==0
         )
         return_value = session.exec(filter_statement).one()
         if return_value:
@@ -121,25 +141,13 @@ class User(SQLModel, table=True):
             session.add(associate)
             session.commit()
 
-    def unblock_user(self, user_2_unblock):
+    def unblock_user(self, session: Session, user_2_unblock):
         filter_statement = select(Associate).where(
             Associate.by == self,
             Associate.to == user_2_unblock,
-            Associate.status==1
+            Associate.status == 1
 
         )
-        session = get_session()
         return_value = session.exec(filter_statement).one()
         session.delete(return_value)
         session.commit()
-
-
-sql_db_path = os.path.join(pathlib.Path(__file__).parent.parent, "database.db")
-sql_db_link = f"sqlite:///{sql_db_path}"
-engine = create_engine(sql_db_link, echo=True)
-SQLModel.metadata.create_all(bind=engine)
-
-
-def get_session():
-    with Session(engine) as session:
-        yield session
