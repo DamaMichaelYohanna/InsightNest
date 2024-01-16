@@ -5,9 +5,8 @@ from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
 from user.deps import get_current_user
-from user.models import get_session
-from user.models import User
-from user.schemas import RegisterInSchema, RegisterOutSchema, LoginSchema, LoginReturnSchema
+from user.models import get_session, User
+from user.schemas import RegisterInSchema, RegisterOutSchema, Profile, Associate
 from user.utility import get_password_hash, verify_password, create_access_token, create_refresh_token
 
 user = FastAPI()
@@ -23,9 +22,7 @@ async def register(user_object: RegisterInSchema, db_session: Session = Depends(
     return new_user
 
 
-@user.post('/login',
-           summary="Create access and refresh tokens for user",
-           )
+@user.post('/login', summary="Create access and refresh tokens for user", )
 async def login(
         form_data: OAuth2PasswordRequestForm = Depends(),
         session=Depends(get_session)
@@ -50,14 +47,37 @@ async def login(
     }
 
 
-@user.get("/logout")
-async def logout():
-    pass
+# @user.get("/profile/{user_id}")
+# async def profile(user_id: int,
+#                   current_user: User = Depends(get_current_user),
+#                   session: Session = Depends(get_session),):
+#     follower = current_user.get_followers(session=session)
+#     following = current_user.get_following(session=session)
+#     associate = Associate(following=len(following), follower=len(follower))
+#     Profile.user = current_user
+#     Profile.associate = associate
+#     # if user_from_id == current_user:
+#     #     Profile.owner = True
+#
+#     return Profile
 
 
-@user.get("/profile/{user_id}")
-async def profile(user_id: int):
-    pass
+@user.get("/profile/{user_id}", response_model=Profile)
+async def my_profile(user_id:int, current_user: User = Depends(get_current_user),
+                     session: Session = Depends(get_session),):
+    user_from_id = session.get(User, user_id)
+    follower = user_from_id.get_followers(session=session)
+    following = user_from_id.get_following(session=session)
+    associate = Associate(following=len(following), followers=len(follower))
+    print(associate, follower, following)
+    Profile.user = user_from_id
+    Profile.associate = associate
+    if user_from_id.id == current_user.id:
+        Profile.owner = True
+    else:
+        Profile.owner = False
+
+    return Profile
 
 
 @user.post("/{user_id}/follow")
@@ -80,3 +100,27 @@ async def unfollow(user_id: int,
     user_2_unfollow = session.get(User, user_id)
     current_user.unfollow_user(session, user_2_unfollow)
     return {"message": f"You Have unfollow {user_2_unfollow.username}"}
+
+
+@user.post("/{user_id}/block")
+async def block(
+        user_id: int,
+        session: Session = Depends(get_session),
+        current_user: User = Depends(get_current_user)):
+    """function for user to follow another user """
+    user_2_block = session.get(User, user_id)
+    current_user.block_user(session, user_2_block)
+    return {"message": f"You've blocked {user_2_block.username}"}
+
+
+@user.delete("/{user_id}/unblock")
+async def unblock(user_id: int,
+                  session: Session = Depends(get_session),
+                  current_user: User = Depends(get_current_user)
+                  ):
+    """function for user to follow another user """
+    user_2_unblock = session.get(User, user_id)
+    current_user.unblock_user(session, user_2_unblock)
+    response = {"status": "success",
+                "message": f"You Have unblock {user_2_unblock.username}"}
+    return response
