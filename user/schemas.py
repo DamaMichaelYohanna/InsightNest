@@ -1,30 +1,16 @@
 from datetime import datetime
 
+from pydantic import BaseModel
 from sqlmodel import SQLModel
-
-
-class LoginSchema(SQLModel):
-    """Schema to be used for login"""
-    username: str
-    password: str
-
-
-class LoginFailedSchema(SQLModel):
-    detail: str
-
-
-class LoginReturnSchema(SQLModel):
-    id: int
-    username: str
-    full_name: str | None = None
-    error: LoginFailedSchema = None
 
 
 class RegisterInSchema(SQLModel):
     """Schema for receiving user credentials"""
     username: str
-    email: str | None = None
     password: str
+    email: str
+    gender: str
+    full_name: str
 
 
 class RegisterOutSchema(SQLModel):
@@ -32,6 +18,31 @@ class RegisterOutSchema(SQLModel):
     id: int
     username: str
     email: str | None = None
+
+
+class Associate(BaseModel):
+    """model to query association"""
+    followers: int | None = None
+    following: int | None = None
+
+
+class User(SQLModel):
+    """model to query only user detail"""
+    username: str | None = None
+    full_name: str | None = None
+    email: str | None = None
+    gender: str | None = None
+    bio: str | None = None
+    cover: str | None = None
+    picture: str | None = None
+    phone: str | None = None
+
+
+class Profile(SQLModel):
+    """model to combine user and their followers"""
+    user: User
+    associate: Associate
+    owner: bool = False
 
 
 class TokenPayLoad(SQLModel):
