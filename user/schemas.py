@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlmodel import SQLModel
 
 
@@ -30,3 +32,8 @@ class RegisterOutSchema(SQLModel):
     id: int
     username: str
     email: str | None = None
+
+
+class TokenPayLoad(SQLModel):
+    exp: int
+    user: str
