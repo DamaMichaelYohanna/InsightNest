@@ -47,29 +47,15 @@ async def login(
     }
 
 
-# @user.get("/profile/{user_id}")
-# async def profile(user_id: int,
-#                   current_user: User = Depends(get_current_user),
-#                   session: Session = Depends(get_session),):
-#     follower = current_user.get_followers(session=session)
-#     following = current_user.get_following(session=session)
-#     associate = Associate(following=len(following), follower=len(follower))
-#     Profile.user = current_user
-#     Profile.associate = associate
-#     # if user_from_id == current_user:
-#     #     Profile.owner = True
-#
-#     return Profile
-
-
-@user.get("/profile/{user_id}", response_model=Profile)
-async def my_profile(user_id:int, current_user: User = Depends(get_current_user),
-                     session: Session = Depends(get_session),):
+@user.get("/{user_id}", response_model=Profile)
+async def my_profile(user_id: int, current_user: User = Depends(get_current_user),
+                     session: Session = Depends(get_session), ):
     user_from_id = session.get(User, user_id)
-    follower = user_from_id.get_followers(session=session)
-    following = user_from_id.get_following(session=session)
-    associate = Associate(following=len(following), followers=len(follower))
-    print(associate, follower, following)
+    follower_associate = user_from_id.get_followers(session=session)
+    following_associate = user_from_id.get_following(session=session)
+
+    associate = Associate(following=len(following_associate),
+                          followers=len(follower_associate))
     Profile.user = user_from_id
     Profile.associate = associate
     if user_from_id.id == current_user.id:
@@ -124,3 +110,42 @@ async def unblock(user_id: int,
     response = {"status": "success",
                 "message": f"You Have unblock {user_2_unblock.username}"}
     return response
+
+
+@user.get("/{user_id}/followers", response_model=Profile)
+async def view_follower(user_id: int, current_user: User = Depends(get_current_user),
+                        session: Session = Depends(get_session), ):
+    """view to return followers of the current user."""
+    user_from_id = session.get(User, user_id)
+    follower_associate = user_from_id.get_followers(session=session)
+    # following_associate = user_from_id.get_following(session=session)
+    follower = [associate.by for associate in follower_associate]
+    associate = Associate(followers=follower)
+    Profile.user = user_from_id
+    Profile.associate = associate
+    if user_from_id.id == current_user.id:
+        Profile.owner = True
+    else:
+        Profile.owner = False
+
+    return Profile
+
+
+@user.get("/{user_id}/following", response_model=Profile)
+async def view_following(user_id: int,
+                         current_user: User = Depends(get_current_user),
+                         session: Session = Depends(get_session), ):
+    """view to return people being followed by the current user."""
+    user_from_id = session.get(User, user_id)
+    # follower_associate = user_from_id.get_followers(session=session)
+    following_associate = user_from_id.get_following(session=session)
+    following = [associate.to for associate in following_associate]
+    associate = Associate(following=following)
+    Profile.user = user_from_id
+    Profile.associate = associate
+    if user_from_id.id == current_user.id:
+        Profile.owner = True
+    else:
+        Profile.owner = False
+
+    return Profile
