@@ -1,7 +1,8 @@
 from datetime import datetime
+from typing import List
 
 from pydantic import BaseModel
-from sqlmodel import SQLModel
+from sqlmodel import SQLModel, Relationship
 
 
 class RegisterInSchema(SQLModel):
@@ -22,8 +23,8 @@ class RegisterOutSchema(SQLModel):
 
 class Associate(BaseModel):
     """model to query association"""
-    followers: int | None = None
-    following: int | None = None
+    followers: List["User"]| int| None = None
+    following: List["User"]| int | None = None
 
 
 class User(SQLModel):
