@@ -17,7 +17,7 @@ class Insight(SQLModel, table=True):
     likes: int | None
     date: str
     user_id: int = Field(foreign_key="user.id")
-    # user: User = Relationship(back_populates="id")
+    user: User = Relationship(back_populates="insight")
     reply: List["Reply"] = Relationship(back_populates="insight")
 
 
