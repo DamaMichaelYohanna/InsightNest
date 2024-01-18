@@ -79,6 +79,7 @@ class User(SQLModel, table=True):
         sa_relationship_kwargs={
             "primaryjoin": "Associate.by_id==User.id"}
     )
+    insight: List["Insight"] = Relationship(back_populates="user")
 
     def get_following(self, session: Session):
         """return the people the current user is following"""
