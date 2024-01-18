@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 
+from insight.routing import insight
 from user.views import user
+
 
 app = FastAPI()
 app.mount('/user', user)
+app.mount('/insight',insight )
 
 # @app.get("/")
 # async def root():
