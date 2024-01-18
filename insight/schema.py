@@ -7,4 +7,8 @@ class InsightCompose(SQLModel):
     note: str
     likes: int | None = None
     date: str = None
-    user: int
+    user_id: int
+
+
+class InsightUpdate(SQLModel):
+    note: str
