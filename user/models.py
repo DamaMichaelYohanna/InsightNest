@@ -1,21 +1,10 @@
-import os
-import pathlib
 from enum import Enum as PyEnum
 
-from fastapi import HTTPException, status, Depends
+from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError, NoResultFound
-from sqlmodel import SQLModel, create_engine, Session, Field, Relationship, Enum, select
+from sqlmodel import SQLModel, Session, Field, Relationship, select
 from typing import List
-
-sql_db_path = os.path.join(pathlib.Path(__file__).parent.parent, "database.db")
-sql_db_link = f"sqlite:///{sql_db_path}"
-engine = create_engine(sql_db_link, echo=True)
-SQLModel.metadata.create_all(bind=engine)
-
-
-def get_session():
-    with Session(engine) as session:
-        yield session
+from database import get_session
 
 
 # Define the Enum for Status
@@ -42,7 +31,7 @@ class Associate(SQLModel, table=True):
     )
 
     def get_or_create(self, user_id):
-        with Session(engine) as session:
+        with get_session() as session:
             filter_statement = select(Associate).where(
                 Associate.by == self,
                 Associate.to == user_id
@@ -153,3 +142,5 @@ class User(SQLModel, table=True):
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="No association. Can not unblock",
             )
+
+

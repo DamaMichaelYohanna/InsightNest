@@ -7,9 +7,10 @@ from sqlalchemy import create_engine
 from sqlmodel import Session, select, SQLModel
 
 from insight.schema import InsightCompose, InsightUpdate
-from user.models import get_session, User
+from user.models import User
 from user.deps import get_current_user
 from insight.models import Insight
+from database import get_session
 
 insight = FastAPI()
 

@@ -4,7 +4,8 @@ from fastapi.security import OAuth2PasswordBearer
 from pydantic import ValidationError
 from sqlmodel import select
 
-from user.models import get_session, User
+from database import get_session
+from user.models import User
 from user.schemas import TokenPayLoad
 from user.utility import (
     ALGORITHM,

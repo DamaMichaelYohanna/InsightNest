@@ -1,13 +1,15 @@
 from typing import Annotated
 
+import sqlalchemy
 from fastapi import FastAPI, Body, Depends, status, HTTPException
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from sqlmodel import Session, select
 
 from user.deps import get_current_user
-from user.models import get_session, User
+from user.models import User
 from user.schemas import RegisterInSchema, RegisterOutSchema, Profile, Associate
 from user.utility import get_password_hash, verify_password, create_access_token, create_refresh_token
+from database import get_session
 
 user = FastAPI()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="user/login")
@@ -27,24 +29,30 @@ async def login(
         form_data: OAuth2PasswordRequestForm = Depends(),
         session=Depends(get_session)
 ):
-    user_obj = session.exec(select(User).where(User.username == form_data.username)).one()
-    if user_obj is None:
+    try:
+        user_obj = session.exec(select(User).where(User.username == form_data.username)).one()
+        if user_obj is None:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect username or password"
+            )
+
+        hashed_pass = user_obj.password
+        if not verify_password(form_data.password, hashed_pass):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Incorrect username or password"
+            )
+
+        return {
+            "access_token": create_access_token(user_obj.username),
+            "refresh_token": create_refresh_token(user_obj.username),
+        }
+    except sqlalchemy.exc.NoResultFound:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Incorrect username or password"
         )
-
-    hashed_pass = user_obj.password
-    if not verify_password(form_data.password, hashed_pass):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect username or password"
-        )
-
-    return {
-        "access_token": create_access_token(user_obj.username),
-        "refresh_token": create_refresh_token(user_obj.username),
-    }
 
 
 @user.get("/{user_id}", response_model=Profile)

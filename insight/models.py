@@ -1,6 +1,5 @@
 import datetime
 from typing import List, Annotated
-
 from sqlmodel import SQLModel, Field, Relationship
 
 from user.models import User
