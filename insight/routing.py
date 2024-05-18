@@ -1,12 +1,10 @@
 import datetime
-import os
-import pathlib
 
-from fastapi import APIRouter, Depends, FastAPI, status, HTTPException
-from sqlalchemy import create_engine
-from sqlmodel import Session, select, SQLModel
 
-from insight.schema import InsightCompose, InsightUpdate
+from fastapi import Depends, FastAPI, status, HTTPException
+from sqlmodel import Session, select
+
+from insight.schema import InsightUpdate
 from user.models import User
 from user.deps import get_current_user
 from insight.models import Insight
@@ -41,7 +39,6 @@ async def compose_insight(new_insight: Insight,
     new_insight.date = str(datetime.datetime.now().date())
     new_insight.user_id = current_user.id
     new_insight.user = current_user
-    print(new_insight)
     session.add(new_insight)
     session.commit()
     return {"message": "insight created successfully"}
@@ -91,3 +88,17 @@ async def like_insight(insight_id: int,
     insight_to_like.likes += 1
     session.commit()
     return {"message": "You liked this insight"}
+
+
+@insight.post('/comment', status_code=status.HTTP_201_CREATED)
+async def compose_insight(new_insight: Insight,
+                          session: Session = Depends(get_session),
+                          current_user: User = Depends(get_current_user)):
+    """endpoint to comment on insights"""
+    new_insight.id = None
+    new_insight.date = str(datetime.datetime.now().date())
+    new_insight.user_id = current_user.id
+    new_insight.user = current_user
+    session.add(new_insight)
+    session.commit()
+    return {"message": "insight created successfully"}
