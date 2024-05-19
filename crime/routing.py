@@ -30,15 +30,22 @@ async def report_crime(session: Session = Depends(get_session),
 
 
 @crime.get("/")
-async def view_reported_crime(session: Session = Depends(get_session)):
+async def view_reported_crimes(session: Session = Depends(get_session)):
     statement = select(Crime)
     reported_crime = session.exec(statement)
     return reported_crime.all()
 
 
-@crime.delete("/")
-async def delete_reported_crime():
-    pass
+@crime.get("/{pk}")
+async def crime_detail(pk: int, session: Session = Depends(get_session)):
+    return session.get(Crime, pk)
+
+
+@crime.delete("/{pk}")
+async def delete_reported_crime(pk: int, session: Session = Depends(get_session)):
+    crime_detail_obj = session.get(Crime, pk)
+    session.delete(crime_detail_obj)
+    return {"message": "Crime deleted Successfully"}
 
 
 @crime.put("/")
